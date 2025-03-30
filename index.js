@@ -5,6 +5,7 @@ import cors from "cors";
 // Router imports
 import postRouter from "./routes/post.js";
 import commentRouter from "./routes/comment.js";
+import accountRouter from "./routes/account.js";
 
 dotenv.config();
 const app = express();
@@ -14,6 +15,7 @@ app.use(cors({ origin: "*" }));
 // Routes
 app.use("/post", postRouter);
 app.use("/comment", commentRouter);
+app.use("/account", accountRouter);
 
 app.use((err, res) => {
   console.error("Error:", err);

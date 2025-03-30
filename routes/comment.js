@@ -27,7 +27,7 @@ router.post("/get", async (req, res, next) => {
 
     const [result] = await pool.execute(
     `
-      SELECT *
+      SELECT *, Comments.content AS commentContent
       FROM Comments
       INNER JOIN Accounts ON Accounts.accountID = Comments.accountID
       INNER JOIN Posts ON Posts.postID = Comments.postID
