@@ -25,12 +25,12 @@ router.post("/exists", async (req, res, next) => {
 // Create folder
 router.post("/create", async (req, res, next) => {
     try {
-        const { email, username, fname, lname } = req.body;
+        const { email, phoneNumber, username, fname, lname } = req.body;
 
         const [result] = await pool.execute(`
-            INSERT INTO Accounts (email, username, fname, lname) VALUES
-            (?, ?, ?, ?)
-        `, [email.toLowerCase(), username.toLowerCase(), fname, lname]
+            INSERT INTO Accounts (email, phoneNumber, username, fname, lname) VALUES
+            (?, ?, ?, ?, ?)
+        `, [email.toLowerCase(), phoneNumber, username.toLowerCase(), fname, lname]
         );
 
         if (result.affectedRows === 0) {
