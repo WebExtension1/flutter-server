@@ -1,7 +1,7 @@
 CREATE TABLE If Not Exists Accounts (
     accountID INT NOT NULL AUTO_INCREMENT,
     email varchar(50) NOT NULL,
-    phoneNumber int NOT NULL,
+    phoneNumber bigint NOT NULL,
     username varchar(25) NOT NULL,
     fname varchar(25) NOT NULL,
     lname varchar(25) NOT NULL,
@@ -9,9 +9,9 @@ CREATE TABLE If Not Exists Accounts (
     PRIMARY KEY (accountID)
 );
 
-INSERT INTO Accounts (accountID, email, username, fname, lname) VALUES
-(1, 'robertjenner6@outlook.com', 'Outlook', 'Web', 'Outlook'),
-(2, 'robertjenner5@me.com', 'Me', 'Web', 'Me');
+INSERT INTO Accounts (accountID, email, username, fname, lname, phoneNumber) VALUES
+(1, 'robertjenner6@outlook.com', 'Outlook', 'Web', 'Outlook', '001111222333'),
+(2, 'robertjenner5@me.com', 'Me', 'Web', 'Me', '123456789012');
 
 CREATE TABLE If Not Exists Posts (
     postID INT NOT NULL AUTO_INCREMENT,
