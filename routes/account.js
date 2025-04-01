@@ -62,4 +62,69 @@ router.post("/details", async (req, res, next) => {
     }
 });
 
+router.post("/updateEmail", async (req, res, next) => {
+    try {
+        const { oldEmail, newEmail } = req.body;
+
+        const [result] = await pool.execute(`
+            UPDATE Accounts SET email = ? WHERE email = ?
+        `, [newEmail.toLowerCase(), oldEmail.toLowerCase()]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ message: "Account not updated" });
+        }
+        res.status(200).json(result[0]);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+router.post("/delete", async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        let [result] = await pool.execute(`
+            DELETE FROM Comments
+            WHERE Comments.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+            OR Comments.postID IN (
+                SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+            );
+        `, [email.toLowerCase(), email.toLowerCase()]
+        );
+
+        [result] = await pool.execute(`
+            DELETE FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+        `, [email.toLowerCase()]
+        );
+
+        [result] = await pool.execute(`
+            DELETE FROM Friends
+            WHERE accountID1 = (SELECT accountID FROM Accounts WHERE email = ?)
+            OR accountID2 = (SELECT accountID FROM Accounts WHERE email = ?)
+        `, [email.toLowerCase(), email.toLowerCase()]
+        );
+
+        [result] = await pool.execute(`
+            DELETE FROM FriendRequest
+            WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
+            OR receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
+        `, [email.toLowerCase(), email.toLowerCase()]);
+
+        [result] = await pool.execute(`
+            DELETE FROM Accounts WHERE email = ?
+        `, [email.toLowerCase()]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ message: "Account not deleted" });
+        }
+        res.status(200).json(result[0]);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
 export default router;

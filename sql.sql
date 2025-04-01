@@ -1,3 +1,9 @@
+DROP TABLE IF EXISTS FriendRequest;
+DROP TABLE IF EXISTS Friends;
+DROP TABLE IF EXISTS Comments;
+DROP TABLE IF EXISTS Posts;
+DROP TABLE IF EXISTS Accounts;
+
 CREATE TABLE If Not Exists Accounts (
     accountID INT NOT NULL AUTO_INCREMENT,
     email varchar(50) NOT NULL,
@@ -48,9 +54,15 @@ CREATE TABLE If Not Exists FriendRequest (
     FOREIGN KEY (receiverID) REFERENCES Accounts (accountID)
 );
 
+INSERT INTO FriendRequest (senderID, receiverID) VALUES
+(1, 2);
+
 CREATE TABLE If Not Exists Friends (
     accountID1 int NOT NULL,
     accountID2 int NOT NULL,
     FOREIGN KEY (accountID1) REFERENCES Accounts (accountID),
     FOREIGN KEY (accountID2) REFERENCES Accounts (accountID)
 );
+
+INSERT INTO Friends (accountID1, accountID2) VALUES
+(1, 2);

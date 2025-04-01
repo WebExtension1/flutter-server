@@ -21,7 +21,7 @@ router.post("/create", async (req, res, next) => {
   }
 });
 
-router.post("/get", async (req, res, next) => {
+router.post("/feed", async (req, res, next) => {
   try {
     const { email } = req.body;
 
@@ -44,6 +44,37 @@ router.post("/get", async (req, res, next) => {
       )
       ORDER BY postDate DESC
     `, [email, email, email]);
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/get", async (req, res, next) => {
+  try {
+    const { email, account } = req.body;
+
+    const [result] = await pool.execute(
+    `
+      SELECT *
+      FROM Posts
+      INNER JOIN Accounts ON Posts.accountID = Accounts.accountID
+      WHERE ((Posts.visibility = 'public')
+      OR (Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
+      OR (
+        Posts.visibility = 'friends' 
+        AND EXISTS (
+          SELECT 1 FROM Friends 
+          WHERE 
+            (Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?) AND Friends.accountID2 = Posts.accountID)
+            OR 
+            (Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?) AND Friends.accountID1 = Posts.accountID)
+        )
+      ))
+      AND Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+      ORDER BY postDate DESC
+    `, [email, email, email, account]);
 
     res.json(result);
   } catch (error) {
