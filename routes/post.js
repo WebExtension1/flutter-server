@@ -101,4 +101,48 @@ router.post("/delete", async (req, res, next) => {
   }
 });
 
+router.post("/like", async (req, res, next) => {
+  try {
+    const { email, postID } = req.body;
+
+    let [result] = await pool.execute(`
+      DELETE FROM PostLikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [postID, email]);
+
+    [result] = await pool.execute(`
+      DELETE FROM PostDislikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [postID, email]);
+
+    [result] = await pool.execute(`
+      INSERT INTO PostLikes (postID, accountID) VALUES (?, (SELECT accountID FROM Accounts WHERE email = ?))
+    `, [postID, email]);
+    res.json({ message: "Post liked successfully", affectedRows: result.affectedRows });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/dislike", async (req, res, next) => {
+  try {
+    const { email, postID } = req.body;
+
+    let [result] = await pool.execute(`
+      DELETE FROM PostLikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [postID, email]);
+
+    [result] = await pool.execute(`
+      DELETE FROM PostDislikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [postID, email]);
+
+    [result] = await pool.execute(`
+      INSERT INTO PostDislikes (postID, accountID) VALUES (?, (SELECT accountID FROM Accounts WHERE email = ?))
+    `, [postID, email]);
+    res.json({ message: "Post disliked successfully", affectedRows: result.affectedRows });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

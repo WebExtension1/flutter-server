@@ -22,7 +22,6 @@ router.post("/exists", async (req, res, next) => {
     }
 });
 
-// Create folder
 router.post("/create", async (req, res, next) => {
     try {
         const { email, phoneNumber, username, fname, lname } = req.body;
@@ -81,11 +80,104 @@ router.post("/updateEmail", async (req, res, next) => {
     }
 });
 
+router.post("/updatePhoneNumber", async (req, res, next) => {
+    try {
+        const { phoneNumber, email } = req.body;
+
+        const [result] = await pool.execute(`
+            UPDATE Accounts SET phoneNumber = ? WHERE email = ?
+        `, [phoneNumber, email.toLowerCase()]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ message: "Account not updated" });
+        }
+        res.status(200).json(result[0]);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+router.post("/updateUsername", async (req, res, next) => {
+    try {
+        const { username, email } = req.body;
+
+        const [result] = await pool.execute(`
+            UPDATE Accounts SET username = ? WHERE email = ?
+        `, [username, email.toLowerCase()]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ message: "Account not updated" });
+        }
+        res.status(200).json(result[0]);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
+router.post("/updateName", async (req, res, next) => {
+    try {
+        const { fname, lname, email } = req.body;
+
+        const [result] = await pool.execute(`
+            UPDATE Accounts SET fname = ?, lname = ? WHERE email = ?
+        `, [fname, lname, email.toLowerCase()]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ message: "Account not updated" });
+        }
+        res.status(200).json(result[0]);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
 router.post("/delete", async (req, res, next) => {
     try {
         const { email } = req.body;
 
         let [result] = await pool.execute(`
+            DELETE FROM PostLikes
+            WHERE PostLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+            OR PostLikes.postID IN (
+                SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+            );
+        `, [email.toLowerCase()]
+        );
+
+        [result] = await pool.execute(`
+            DELETE FROM PostDislikes
+            WHERE PostDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+            OR PostDislikes.postID IN (
+                SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+            );
+        `, [email.toLowerCase()]
+        );
+
+        [result] = await pool.execute(`
+            DELETE FROM CommentLikes
+            WHERE CommentLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+            OR CommentLikes.postID IN (
+                SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+            );
+        `, [email.toLowerCase()]
+        );
+
+        [result] = await pool.execute(`
+            DELETE FROM CommentDislikes
+            WHERE CommentDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+            OR CommentDislikes.postID IN (
+                SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+            );
+        `, [email.toLowerCase()]
+        );
+
+        [result] = await pool.execute(`
             DELETE FROM Comments
             WHERE Comments.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             OR Comments.postID IN (

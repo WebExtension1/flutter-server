@@ -40,4 +40,48 @@ router.post("/get", async (req, res, next) => {
   }
 });
 
+router.post("/like", async (req, res, next) => {
+  try {
+    const { email, commentID } = req.body;
+
+    let [result] = await pool.execute(`
+      DELETE FROM CommentLikes WHERE commentID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [commentID, email]);
+
+    [result] = await pool.execute(`
+      DELETE FROM CommentDislikes WHERE commentID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [commentID, email]);
+
+    [result] = await pool.execute(`
+      INSERT INTO CommentLikes (commentID, accountID) VALUES (?, (SELECT accountID FROM Accounts WHERE email = ?))
+    `, [commentID, email]);
+    res.json({ message: "Comment liked successfully", affectedRows: result.affectedRows });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/dislike", async (req, res, next) => {
+  try {
+    const { email, commentID } = req.body;
+
+    let [result] = await pool.execute(`
+      DELETE FROM CommentLikes WHERE commentID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [commentID, email]);
+
+    [result] = await pool.execute(`
+      DELETE FROM CommentDislikes WHERE commentID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [commentID, email]);
+
+    [result] = await pool.execute(`
+      INSERT INTO CommentDislikes (commentID, accountID) VALUES (?, (SELECT accountID FROM Accounts WHERE email = ?))
+    `, [commentID, email]);
+    res.json({ message: "Comment disliked successfully", affectedRows: result.affectedRows });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
