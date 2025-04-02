@@ -67,30 +67,30 @@ CREATE TABLE If Not Exists Friends (
 INSERT INTO Friends (accountID1, accountID2) VALUES
 (1, 2);
 
-CREATE TABLE If Not Exits PostLikes (
+CREATE TABLE If Not Exists PostLikes (
     postID int NOT NULL,
     accountID int NOT NULL,
     FOREIGN KEY (postID) REFERENCES Posts (postID),
     FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
-)
+);
 
-CREATE TABLE If Not Exits PostDislikes (
+CREATE TABLE If Not Exists PostDislikes (
     postID int NOT NULL,
     accountID int NOT NULL,
     FOREIGN KEY (postID) REFERENCES Posts (postID),
     FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
-)
+);
 
-CREATE TABLE If Not Exits CommentLikes (
+CREATE TABLE If Not Exists CommentLikes (
     commentID int NOT NULL,
     accountID int NOT NULL,
     FOREIGN KEY (commentID) REFERENCES Comments (commentID),
     FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
-)
+);
 
-CREATE TABLE If Not Exits CommentDislikes (
+CREATE TABLE If Not Exists CommentDislikes (
     commentID int NOT NULL,
     accountID int NOT NULL,
     FOREIGN KEY (commentID) REFERENCES Comments (commentID),
     FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
-)
+);

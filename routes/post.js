@@ -27,9 +27,33 @@ router.post("/feed", async (req, res, next) => {
 
     const [result] = await pool.execute(
     `
-      SELECT *
+      SELECT
+        Posts.postID AS postID,
+        Posts.content AS content,
+        Posts.postDate AS postDate,
+        Posts.visibility AS visibility,
+        Accounts.accountID AS accountID,
+        Accounts.email AS email,
+        Accounts.phoneNumber AS phoneNumber,
+        Accounts.username AS username,
+        Accounts.fname AS fname,
+        Accounts.lname AS lname,
+        Accounts.dateJoined AS dateJoined,
+        COUNT(DISTINCT PostLikes.postID) AS likes,
+        COUNT(DISTINCT PostDislikes.postID) AS dislikes,
+        COUNT(DISTINCT Comments.commentID) AS commentCount,
+        COALESCE(MAX(
+            CASE 
+                WHEN PostLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 1
+                WHEN PostDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
+                ELSE 0
+            END
+        ), 0) AS liked
       FROM Posts
       INNER JOIN Accounts ON Posts.accountID = Accounts.accountID
+      LEFT JOIN PostLikes ON Posts.postID = PostLikes.postID
+      LEFT JOIN PostDislikes ON Posts.postID = PostDislikes.postID
+      LEFT JOIN Comments ON Posts.postID = Comments.postID
       WHERE (Posts.visibility = 'public')
       OR (Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
       OR (
@@ -42,8 +66,9 @@ router.post("/feed", async (req, res, next) => {
             (Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?) AND Friends.accountID1 = Posts.accountID)
         )
       )
+      GROUP BY Posts.postID
       ORDER BY postDate DESC
-    `, [email, email, email]);
+    `, [email, email, email, email, email]);
 
     res.json(result);
   } catch (error) {
@@ -139,6 +164,25 @@ router.post("/dislike", async (req, res, next) => {
       INSERT INTO PostDislikes (postID, accountID) VALUES (?, (SELECT accountID FROM Accounts WHERE email = ?))
     `, [postID, email]);
     res.json({ message: "Post disliked successfully", affectedRows: result.affectedRows });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/resetInteraction", async (req, res, next) => {
+  try {
+    const { email, postID } = req.body;
+
+    let [result] = await pool.execute(`
+      DELETE FROM PostLikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [postID, email]);
+
+    [result] = await pool.execute(`
+      DELETE FROM PostDislikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [postID, email]);
+
+    res.json({ message: "Post disliked reset", affectedRows: result.affectedRows });
 
   } catch (error) {
     next(error);
