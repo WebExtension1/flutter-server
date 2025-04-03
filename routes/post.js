@@ -182,7 +182,7 @@ router.post("/resetInteraction", async (req, res, next) => {
       DELETE FROM PostDislikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
     `, [postID, email]);
 
-    res.json({ message: "Post disliked reset", affectedRows: result.affectedRows });
+    res.json({ message: "Post likes and dislikes reset", affectedRows: result.affectedRows });
 
   } catch (error) {
     next(error);

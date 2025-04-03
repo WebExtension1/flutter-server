@@ -84,4 +84,23 @@ router.post("/dislike", async (req, res, next) => {
   }
 });
 
+router.post("/resetInteraction", async (req, res, next) => {
+  try {
+    const { email, postID } = req.body;
+
+    let [result] = await pool.execute(`
+      DELETE FROM CommentLikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [postID, email]);
+
+    [result] = await pool.execute(`
+      DELETE FROM CommentDislikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+    `, [postID, email]);
+
+    res.json({ message: "Comment likes and dislikes reset", affectedRows: result.affectedRows });
+
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
