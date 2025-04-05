@@ -23,17 +23,40 @@ router.post("/create", async (req, res, next) => {
 
 router.post("/get", async (req, res, next) => {
   try {
-    const { postID } = req.body;
+    const { postID, email } = req.body;
 
     const [result] = await pool.execute(
-    `
-      SELECT *, Comments.content AS commentContent
-      FROM Comments
-      INNER JOIN Accounts ON Accounts.accountID = Comments.accountID
-      INNER JOIN Posts ON Posts.postID = Comments.postID
-      WHERE Comments.postID = ?
-      ORDER BY sentDate DESC
-    `, [postID]);
+      `
+        SELECT
+          Comments.commentID,
+          Comments.content AS commentContent,
+          Comments.sentDate as sentDate,
+          Accounts.accountID AS accountID,
+          Accounts.email AS email,
+          Accounts.phoneNumber AS phoneNumber,
+          Accounts.username AS username,
+          Accounts.fname AS fname,
+          Accounts.lname AS lname,
+          Accounts.dateJoined AS dateJoined,
+          COUNT(DISTINCT CommentLikes.commentID) AS likes,
+          COUNT(DISTINCT CommentDislikes.commentID) AS dislikes,
+          COALESCE(MAX(
+              CASE 
+                  WHEN CommentLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 1
+                  WHEN CommentDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
+                  ELSE 0
+              END
+          ), 0) AS liked
+        FROM Comments
+        INNER JOIN Accounts ON Accounts.accountID = Comments.accountID
+        LEFT JOIN CommentLikes ON Comments.commentID = CommentLikes.commentID
+        LEFT JOIN CommentDislikes ON Comments.commentID = CommentDislikes.commentID
+        INNER JOIN Posts ON Posts.postID = Comments.postID
+        WHERE Comments.postID = ?
+        GROUP BY Comments.commentID
+        ORDER BY sentDate DESC
+      `, [email, email, postID]
+    );    
     res.json(result);
   } catch (error) {
     next(error);
