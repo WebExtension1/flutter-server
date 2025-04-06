@@ -7,9 +7,11 @@ router.post("/exists", async (req, res, next) => {
     try {
         const { email, username } = req.body;
 
+        const sanitisedEmail = email.trim().toLowerCase();
+
         const [result] = await pool.execute(`
             SELECT * FROM Accounts WHERE email = ? OR username = ?
-        `, [email, username.toLowerCase()]
+        `, [sanitisedEmail, username.toLowerCase()]
         );
 
         if (result.length > 0) {
@@ -26,10 +28,12 @@ router.post("/create", async (req, res, next) => {
     try {
         const { email, phoneNumber, username, fname, lname } = req.body;
 
+        const sanitisedEmail = email.trim().toLowerCase();
+
         const [result] = await pool.execute(`
             INSERT INTO Accounts (email, phoneNumber, username, fname, lname) VALUES
             (?, ?, ?, ?, ?)
-        `, [email.toLowerCase(), phoneNumber, username.toLowerCase(), fname, lname]
+        `, [sanitisedEmail, phoneNumber, username.toLowerCase(), fname, lname]
         );
 
         if (result.affectedRows === 0) {
@@ -46,9 +50,11 @@ router.post("/details", async (req, res, next) => {
     try {
         const { email } = req.body;
 
+        const sanitisedEmail = email.trim().toLowerCase();
+
         const [result] = await pool.execute(`
             SELECT * FROM Accounts WHERE email = ?
-        `, [email.toLowerCase()]
+        `, [sanitisedEmail]
         );
 
         if (result.affectedRows === 0) {
@@ -65,9 +71,12 @@ router.post("/updateEmail", async (req, res, next) => {
     try {
         const { oldEmail, newEmail } = req.body;
 
+        const sanitisedOldEmail = oldEmail.trim().toLowerCase();
+        const sanitisedNewEmail = newEmail.trim().toLowerCase();
+
         const [result] = await pool.execute(`
             UPDATE Accounts SET email = ? WHERE email = ?
-        `, [newEmail.toLowerCase(), oldEmail.toLowerCase()]
+        `, [sanitisedNewEmail, sanitisedOldEmail]
         );
 
         if (result.affectedRows === 0) {
@@ -84,9 +93,11 @@ router.post("/updatePhoneNumber", async (req, res, next) => {
     try {
         const { phoneNumber, email } = req.body;
 
+        const sanitisedEmail = email.trim().toLowerCase();
+
         const [result] = await pool.execute(`
             UPDATE Accounts SET phoneNumber = ? WHERE email = ?
-        `, [phoneNumber, email.toLowerCase()]
+        `, [phoneNumber, sanitisedEmail]
         );
 
         if (result.affectedRows === 0) {
@@ -103,9 +114,11 @@ router.post("/updateUsername", async (req, res, next) => {
     try {
         const { username, email } = req.body;
 
+        const sanitisedEmail = email.trim().toLowerCase();
+
         const [result] = await pool.execute(`
             UPDATE Accounts SET username = ? WHERE email = ?
-        `, [username, email.toLowerCase()]
+        `, [username, sanitisedEmail]
         );
 
         if (result.affectedRows === 0) {
@@ -122,9 +135,11 @@ router.post("/updateName", async (req, res, next) => {
     try {
         const { fname, lname, email } = req.body;
 
+        const sanitisedEmail = email.trim().toLowerCase();
+
         const [result] = await pool.execute(`
             UPDATE Accounts SET fname = ?, lname = ? WHERE email = ?
-        `, [fname, lname, email.toLowerCase()]
+        `, [fname, lname, sanitisedEmail]
         );
 
         if (result.affectedRows === 0) {
@@ -141,13 +156,15 @@ router.post("/delete", async (req, res, next) => {
     try {
         const { email } = req.body;
 
+        const sanitisedEmail = email.trim().toLowerCase();
+
         let [result] = await pool.execute(`
             DELETE FROM PostLikes
             WHERE PostLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             OR PostLikes.postID IN (
                 SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             );
-        `, [email.toLowerCase()]
+        `, [sanitisedEmail]
         );
 
         [result] = await pool.execute(`
@@ -156,7 +173,7 @@ router.post("/delete", async (req, res, next) => {
             OR PostDislikes.postID IN (
                 SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             );
-        `, [email.toLowerCase()]
+        `, [sanitisedEmail]
         );
 
         [result] = await pool.execute(`
@@ -165,7 +182,7 @@ router.post("/delete", async (req, res, next) => {
             OR CommentLikes.postID IN (
                 SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             );
-        `, [email.toLowerCase()]
+        `, [sanitisedEmail]
         );
 
         [result] = await pool.execute(`
@@ -174,7 +191,7 @@ router.post("/delete", async (req, res, next) => {
             OR CommentDislikes.postID IN (
                 SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             );
-        `, [email.toLowerCase()]
+        `, [sanitisedEmail]
         );
 
         [result] = await pool.execute(`
@@ -183,30 +200,30 @@ router.post("/delete", async (req, res, next) => {
             OR Comments.postID IN (
                 SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             );
-        `, [email.toLowerCase(), email.toLowerCase()]
+        `, [sanitisedEmail, sanitisedEmail]
         );
 
         [result] = await pool.execute(`
             DELETE FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-        `, [email.toLowerCase()]
+        `, [sanitisedEmail]
         );
 
         [result] = await pool.execute(`
             DELETE FROM Friends
             WHERE accountID1 = (SELECT accountID FROM Accounts WHERE email = ?)
             OR accountID2 = (SELECT accountID FROM Accounts WHERE email = ?)
-        `, [email.toLowerCase(), email.toLowerCase()]
+        `, [sanitisedEmail, sanitisedEmail]
         );
 
         [result] = await pool.execute(`
             DELETE FROM FriendRequest
             WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
             OR receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
-        `, [email.toLowerCase(), email.toLowerCase()]);
+        `, [sanitisedEmail, sanitisedEmail]);
 
         [result] = await pool.execute(`
             DELETE FROM Accounts WHERE email = ?
-        `, [email.toLowerCase()]
+        `, [sanitisedEmail]
         );
 
         if (result.affectedRows === 0) {
@@ -215,6 +232,45 @@ router.post("/delete", async (req, res, next) => {
         res.status(200).json(result[0]);
     }
     catch (error) {
+        next(error);
+    }
+});
+
+router.post('/fromNumbers', async (req, res, next) => {
+    try {
+        const { phoneNumbers, email } = req.body;
+    
+        const sanitisedEmail = email.trim().toLowerCase();
+
+        const [userResult] = await pool.execute(`
+            SELECT accountID
+            FROM Accounts
+            WHERE email = ?
+        `, [sanitisedEmail]);
+
+        const userAccountID = userResult[0].accountID;
+        const numbers = phoneNumbers.map(() => '?').join(',');
+
+        const [result] = await pool.execute(`
+            SELECT *
+            FROM Accounts
+            WHERE phoneNumber IN (${numbers})
+            AND email != ?
+            AND NOT EXISTS (
+                SELECT 1
+                FROM Friends
+                WHERE (Friends.accountID1 = Accounts.accountID AND Friends.accountID2 = ?)
+                OR (Friends.accountID2 = Accounts.accountID AND Friends.accountID1 = ?)
+            )
+        `, [...phoneNumbers, sanitisedEmail, userAccountID, userAccountID]
+    );
+        
+        if (result.length === 0) {
+            return res.status(404).json({ message: "No accounts found" });
+        }
+    
+        res.status(200).json(result);
+    } catch (error) {
         next(error);
     }
 });

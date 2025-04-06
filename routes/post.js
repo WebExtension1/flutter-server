@@ -8,11 +8,13 @@ router.post("/create", async (req, res, next) => {
   try {
     const { email, content, visibility } = req.body;
 
+    const sanitisedEmail = email.trim().toLowerCase();
+
     const [result] = await pool.execute(
     `
       INSERT INTO Posts (content, accountID, visibility) VALUES
       (?, (SELECT accountID FROM Accounts WHERE email = ?), ?)
-    `, [content, email, visibility]);
+    `, [content, sanitisedEmail, visibility]);
 
     res.json({ message: "Post created successfully", affectedRows: result.affectedRows });
   }
@@ -24,6 +26,8 @@ router.post("/create", async (req, res, next) => {
 router.post("/feed", async (req, res, next) => {
   try {
     const { email } = req.body;
+
+    const sanitisedEmail = email.trim().toLowerCase();
 
     const [result] = await pool.execute(
     `
@@ -68,7 +72,7 @@ router.post("/feed", async (req, res, next) => {
       )
       GROUP BY Posts.postID
       ORDER BY postDate DESC
-    `, [email, email, email, email, email]);
+    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]);
 
     res.json(result);
   } catch (error) {
@@ -79,6 +83,8 @@ router.post("/feed", async (req, res, next) => {
 router.post("/get", async (req, res, next) => {
   try {
     const { email, account } = req.body;
+
+    const sanitisedEmail = email.trim().toLowerCase();
 
     const [result] = await pool.execute(
     `
@@ -99,7 +105,7 @@ router.post("/get", async (req, res, next) => {
       ))
       AND Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
       ORDER BY postDate DESC
-    `, [email, email, email, account]);
+    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, account]);
 
     res.json(result);
   } catch (error) {
@@ -130,17 +136,19 @@ router.post("/like", async (req, res, next) => {
   try {
     const { email, postID } = req.body;
 
+    const sanitisedEmail = email.trim().toLowerCase();
+
     let [result] = await pool.execute(`
       DELETE FROM PostLikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [postID, email]);
+    `, [postID, sanitisedEmail]);
 
     [result] = await pool.execute(`
       DELETE FROM PostDislikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [postID, email]);
+    `, [postID, sanitisedEmail]);
 
     [result] = await pool.execute(`
       INSERT INTO PostLikes (postID, accountID) VALUES (?, (SELECT accountID FROM Accounts WHERE email = ?))
-    `, [postID, email]);
+    `, [postID, sanitisedEmail]);
     res.json({ message: "Post liked successfully", affectedRows: result.affectedRows });
 
   } catch (error) {
@@ -152,17 +160,19 @@ router.post("/dislike", async (req, res, next) => {
   try {
     const { email, postID } = req.body;
 
+    const sanitisedEmail = email.trim().toLowerCase();
+
     let [result] = await pool.execute(`
       DELETE FROM PostLikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [postID, email]);
+    `, [postID, sanitisedEmail]);
 
     [result] = await pool.execute(`
       DELETE FROM PostDislikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [postID, email]);
+    `, [postID, sanitisedEmail]);
 
     [result] = await pool.execute(`
       INSERT INTO PostDislikes (postID, accountID) VALUES (?, (SELECT accountID FROM Accounts WHERE email = ?))
-    `, [postID, email]);
+    `, [postID, sanitisedEmail]);
     res.json({ message: "Post disliked successfully", affectedRows: result.affectedRows });
 
   } catch (error) {
@@ -174,13 +184,15 @@ router.post("/resetInteraction", async (req, res, next) => {
   try {
     const { email, postID } = req.body;
 
+    const sanitisedEmail = email.trim().toLowerCase();
+
     let [result] = await pool.execute(`
       DELETE FROM PostLikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [postID, email]);
+    `, [postID, sanitisedEmail]);
 
     [result] = await pool.execute(`
       DELETE FROM PostDislikes WHERE postID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [postID, email]);
+    `, [postID, sanitisedEmail]);
 
     res.json({ message: "Post likes and dislikes reset", affectedRows: result.affectedRows });
 

@@ -8,11 +8,13 @@ router.post("/create", async (req, res, next) => {
   try {
     const { email, content, postID } = req.body;
 
+    const sanitisedEmail = email.trim().toLowerCase();
+
     const [result] = await pool.execute(
     `
       INSERT INTO Comments (content, accountID, postID) VALUES
       (?, (SELECT accountID FROM Accounts WHERE email = ?), ?)
-    `, [content, email, postID]
+    `, [content, sanitisedEmail, postID]
     );
     res.json({ message: "Comment created successfully", affectedRows: result.affectedRows });
   }
@@ -24,6 +26,8 @@ router.post("/create", async (req, res, next) => {
 router.post("/get", async (req, res, next) => {
   try {
     const { postID, email } = req.body;
+
+    const sanitisedEmail = email.trim().toLowerCase();
 
     const [result] = await pool.execute(
       `
@@ -55,7 +59,7 @@ router.post("/get", async (req, res, next) => {
         WHERE Comments.postID = ?
         GROUP BY Comments.commentID
         ORDER BY sentDate DESC
-      `, [email, email, postID]
+      `, [sanitisedEmail, sanitisedEmail, postID]
     );    
     res.json(result);
   } catch (error) {
@@ -67,17 +71,19 @@ router.post("/like", async (req, res, next) => {
   try {
     const { email, commentID } = req.body;
 
+    const sanitisedEmail = email.trim().toLowerCase();
+
     let [result] = await pool.execute(`
       DELETE FROM CommentLikes WHERE commentID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [commentID, email]);
+    `, [commentID, sanitisedEmail]);
 
     [result] = await pool.execute(`
       DELETE FROM CommentDislikes WHERE commentID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [commentID, email]);
+    `, [commentID, sanitisedEmail]);
 
     [result] = await pool.execute(`
       INSERT INTO CommentLikes (commentID, accountID) VALUES (?, (SELECT accountID FROM Accounts WHERE email = ?))
-    `, [commentID, email]);
+    `, [commentID, sanitisedEmail]);
     res.json({ message: "Comment liked successfully", affectedRows: result.affectedRows });
 
   } catch (error) {
@@ -89,17 +95,19 @@ router.post("/dislike", async (req, res, next) => {
   try {
     const { email, commentID } = req.body;
 
+    const sanitisedEmail = email.trim().toLowerCase();
+
     let [result] = await pool.execute(`
       DELETE FROM CommentLikes WHERE commentID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [commentID, email]);
+    `, [commentID, sanitisedEmail]);
 
     [result] = await pool.execute(`
       DELETE FROM CommentDislikes WHERE commentID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [commentID, email]);
+    `, [commentID, sanitisedEmail]);
 
     [result] = await pool.execute(`
       INSERT INTO CommentDislikes (commentID, accountID) VALUES (?, (SELECT accountID FROM Accounts WHERE email = ?))
-    `, [commentID, email]);
+    `, [commentID, sanitisedEmail]);
     res.json({ message: "Comment disliked successfully", affectedRows: result.affectedRows });
 
   } catch (error) {
@@ -111,13 +119,15 @@ router.post("/resetInteraction", async (req, res, next) => {
   try {
     const { email, commentID } = req.body;
 
+    const sanitisedEmail = email.trim().toLowerCase();
+
     let [result] = await pool.execute(`
       DELETE FROM CommentLikes WHERE commentID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [commentID, email]);
+    `, [commentID, sanitisedEmail]);
 
     [result] = await pool.execute(`
       DELETE FROM CommentDislikes WHERE commentID = ? AND accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-    `, [commentID, email]);
+    `, [commentID, sanitisedEmail]);
 
     res.json({ message: "Comment likes and dislikes reset", affectedRows: result.affectedRows });
 
