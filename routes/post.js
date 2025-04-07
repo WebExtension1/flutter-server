@@ -3,7 +3,6 @@ import pool from "../db.js";
 
 const router = express.Router();
 
-// Create folder
 router.post("/create", async (req, res, next) => {
   try {
     const { email, content, visibility } = req.body;
