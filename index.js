@@ -4,6 +4,7 @@ import cors from "cors";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import pool from "./db.js";
+import path from "path";
 
 // Router imports
 import postRouter from "./routes/post.js";
@@ -171,6 +172,7 @@ io.on("connection", (socket) => {
 app.use("/post", postRouter);
 app.use("/comment", commentRouter);
 app.use("/account", accountRouter);
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use((err, res) => {
   console.error("Error:", err);

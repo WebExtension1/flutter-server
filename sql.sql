@@ -25,6 +25,7 @@ CREATE TABLE If Not Exists Posts (
     postDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     accountID int NOT NULL,
     visibility ENUM('public', 'private', 'friends') NOT NULL DEFAULT 'public',
+    imageUrl varchar(255) DEFAULT NULL,
     PRIMARY KEY (postID),
     FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
 );

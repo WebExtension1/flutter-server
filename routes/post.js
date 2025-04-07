@@ -1,19 +1,36 @@
 import express from "express";
 import pool from "../db.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const router = express.Router();
 
-router.post("/create", async (req, res, next) => {
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = './uploads';
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+const upload = multer({ storage });
+
+router.post("/create", upload.single("image"), async (req, res, next) => {
   try {
     const { email, content, visibility } = req.body;
 
     const sanitisedEmail = email.trim().toLowerCase();
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
     const [result] = await pool.execute(
     `
-      INSERT INTO Posts (content, accountID, visibility) VALUES
-      (?, (SELECT accountID FROM Accounts WHERE email = ?), ?)
-    `, [content, sanitisedEmail, visibility]);
+      INSERT INTO Posts (content, accountID, visibility, imageUrl) VALUES
+      (?, (SELECT accountID FROM Accounts WHERE email = ?), ?, ?)
+    `, [content, sanitisedEmail, visibility, imageUrl]);
 
     res.json({ message: "Post created successfully", affectedRows: result.affectedRows });
   }
@@ -35,6 +52,7 @@ router.post("/feed", async (req, res, next) => {
         Posts.content AS content,
         Posts.postDate AS postDate,
         Posts.visibility AS visibility,
+        Posts.imageUrl AS imageUrl,
         Accounts.accountID AS accountID,
         Accounts.email AS email,
         Accounts.phoneNumber AS phoneNumber,
