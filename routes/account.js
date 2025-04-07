@@ -249,12 +249,12 @@ router.post('/fromNumbers', async (req, res, next) => {
         `, [sanitisedEmail]);
 
         const userAccountID = userResult[0].accountID;
-        const numbers = phoneNumbers.map(() => '?').join(',');
+        const placeholders = phoneNumbers.map(() => '?').join(',');
 
         const [result] = await pool.execute(`
             SELECT *
             FROM Accounts
-            WHERE phoneNumber IN (${numbers})
+            WHERE phoneNumber IN (${placeholders})
             AND email != ?
             AND NOT EXISTS (
                 SELECT 1

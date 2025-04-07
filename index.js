@@ -48,7 +48,8 @@ io.on("connection", (socket) => {
       });
 
       const posts = await result.json();
-      const mappedPosts = posts.map((post) => post.postID).join(", ");
+      const postIDs = posts.map((post) => post.postID);
+      const placeholders = postIDs.map(() => '?').join(', ');
   
       [result] = await pool.execute(
         `
@@ -79,9 +80,10 @@ io.on("connection", (socket) => {
           LEFT JOIN PostLikes ON Posts.postID = PostLikes.postID
           LEFT JOIN PostDislikes ON Posts.postID = PostDislikes.postID
           LEFT JOIN Comments ON Posts.postID = Comments.postID
-          WHERE Posts.content LIKE ?
-          AND Posts.postID IN (${mappedPosts})
-        `, [sanitisedEmail, sanitisedEmail, `%${query}%`]
+          WHERE LOWER(Posts.content) LIKE LOWER(?)
+          AND Posts.postID IN (${placeholders})
+          GROUP BY Posts.postID
+        `, [sanitisedEmail, sanitisedEmail, `%${query}%`, ...postIDs]
       );
   
       io.emit("search", result);
