@@ -27,10 +27,70 @@ const io = new Server(server, {
 
 io.on("connection", (socket) => {
   console.log("Connected to server");
+  
+  socket.on("open message", async (data) => {
+    try {
+      const { sender, recipient } = data;
+  
+      const sanitisedSender = sender.trim().toLowerCase();
+      const sanitisedRecipient = recipient.trim().toLowerCase();
+  
+      const [result] = await pool.execute(`
+        SELECT
+          Messages.messageID as messageID,
+          Messages.content AS content,
+          Messages.sentDate AS sentDate,
+          sender.email AS senderEmail,
+          receiver.email AS receiverEmail
+        FROM Messages
+        INNER JOIN Accounts AS sender ON Messages.senderID = sender.accountID
+        INNER JOIN Accounts AS receiver ON Messages.receiverID = receiver.accountID
+        WHERE (sender.accountID = (SELECT accountID FROM Accounts WHERE email = ?) AND receiver.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
+        OR (sender.accountID = (SELECT accountID FROM Accounts WHERE email = ?) AND receiver.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
+        ORDER BY Messages.sentDate ASC
+      `, [sanitisedSender, sanitisedRecipient, sanitisedRecipient, sanitisedSender]
+    );
+  
+      io.emit("open message", result);
+    } catch (error) {
+      console.error("Message error:", error);
+      socket.emit("message_error", { message: "An error occurred while fetching message history." });
+    }
+  });
 
-  socket.on("chat message", (data) => {
-    console.log(data);
-    io.emit("chat message", data);
+  socket.on("chat message", async (data) => {
+    try {
+      const { message, sender, recipient } = data;
+
+      const sanitisedSender = sender.trim().toLowerCase();
+      const sanitisedRecipient = recipient.trim().toLowerCase();
+
+      const [result] = await pool.execute(`
+        INSERT INTO Messages (content, senderID, receiverID) VALUES
+        (?, (SELECT accountID FROM Accounts WHERE email = ?), (SELECT accountID FROM Accounts WHERE email = ?))
+      `, [message, sanitisedSender, sanitisedRecipient]
+      );
+
+      const messageID = result.insertId;
+      const [messageData] = await pool.execute(`
+        SELECT
+          Messages.messageID,
+          Messages.content,
+          Messages.sentData,
+          sender.email AS senderEmail,
+          receiver.email AS receiverEmail,
+        FROM Messages
+        INNER JOIN Accounts AS sender ON Messages.senderID = sender.accountID
+        INNER JOIN Accounts AS receiver ON Messages.receiverID = receiver.accountID
+        WHERE messageID = ?
+      `, [messageID]
+      );
+
+      io.emit("chat message", messageData);
+    } catch (error) {
+      console.error("Message error:", error);
+      socket.emit("message_error", { message: "An error occurred while sending the message." });
+    }
   });
 
   socket.on("search", async (data) => {
@@ -38,8 +98,18 @@ io.on("connection", (socket) => {
       const { email, query } = data;
 
       const sanitisedEmail = email.trim().toLowerCase();
+
+      const [searchedAccounts] = await pool.execute(`
+        SELECT *
+        FROM Accounts
+        WHERE LOWER(username) LIKE LOWER(?)
+        OR LOWER(fname) LIKE LOWER(?)
+        OR LOWER(lname) LIKE LOWER(?)
+        GROUP BY Accounts.accountID
+        `, [`%${query}%`, `%${query}%`, `%${query}%`]
+      );
   
-      let result = await fetch(`http://localhost:3005/post/feed`, {
+      const posts = await fetch(`http://localhost:3005/post/feed`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,12 +117,11 @@ io.on("connection", (socket) => {
         body: JSON.stringify({ email: sanitisedEmail }),
       });
 
-      const posts = await result.json();
-      const postIDs = posts.map((post) => post.postID);
+      const visiblePosts = await posts.json();
+      const postIDs = visiblePosts.map((post) => post.postID);
       const placeholders = postIDs.map(() => '?').join(', ');
   
-      [result] = await pool.execute(
-        `
+      const [searchedPosts] = await pool.execute(`
         SELECT
           Posts.postID AS postID,
           Posts.content AS content,
@@ -86,7 +155,7 @@ io.on("connection", (socket) => {
         `, [sanitisedEmail, sanitisedEmail, `%${query}%`, ...postIDs]
       );
   
-      io.emit("search", result);
+      io.emit("search", {'accounts': searchedAccounts, 'posts': searchedPosts});
     } catch (error) {
       console.error("Search error:", error);
       socket.emit("search_error", { message: "An error occurred while searching." });
@@ -108,6 +177,6 @@ app.use((err, res) => {
   res.status(500).json({ error: "Internal Server Error" });
 });
 
-app.listen(3005, () => console.log("API running on port 3005"));
+app.listen(3007, () => console.log("API running on port 3007"));
 
-server.listen(3006, () => console.log("Server running on port 3006"));
+server.listen(3008, () => console.log("Server running on port 3008"));

@@ -275,4 +275,57 @@ router.post('/fromNumbers', async (req, res, next) => {
     }
 });
 
+router.post('/friends', async (req, res, next) => {
+    try {
+        const { email } = req.body;
+    
+        const sanitisedEmail = email.trim().toLowerCase();
+
+        const [result] = await pool.execute(`
+            SELECT 
+                CASE 
+                    WHEN A1.email = ? THEN A2.accountID 
+                    ELSE A1.accountID 
+                END AS accountID,
+                CASE 
+                    WHEN A1.email = ? THEN A2.email 
+                    ELSE A1.email 
+                END AS email,
+                CASE 
+                    WHEN A1.email = ? THEN A2.phoneNumber 
+                    ELSE A1.phoneNumber 
+                END AS phoneNumber,
+                CASE 
+                    WHEN A1.email = ? THEN A2.username 
+                    ELSE A1.username 
+                END AS username,
+                CASE 
+                    WHEN A1.email = ? THEN A2.fname 
+                    ELSE A1.fname 
+                END AS fname,
+                CASE 
+                    WHEN A1.email = ? THEN A2.lname 
+                    ELSE A1.lname 
+                END AS lname,
+                CASE 
+                    WHEN A1.email = ? THEN A2.dateJoined 
+                    ELSE A1.dateJoined 
+                END AS dateJoined
+            FROM Friends
+            INNER JOIN Accounts AS A1 ON Friends.accountID1 = A1.accountID
+            INNER JOIN Accounts AS A2 ON Friends.accountID2 = A2.accountID
+            WHERE A1.email = ? OR A2.email = ?
+        `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
+        );
+        
+        if (result.length === 0) {
+            return res.status(404).json({ message: "No friends found" });
+        }
+    
+        res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
 export default router;

@@ -94,3 +94,14 @@ CREATE TABLE If Not Exists CommentDislikes (
     FOREIGN KEY (commentID) REFERENCES Comments (commentID),
     FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
 );
+
+CREATE TABLE If Not Exists Messages (
+    messageID INT NOT NULL AUTO_INCREMENT,
+    content varchar(2500)  NOT NULL,
+    sentDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    senderID int NOT NULL,
+    receiverID int NOT NULL,
+    PRIMARY KEY (messageID),
+    FOREIGN KEY (senderID) REFERENCES Accounts (accountID),
+    FOREIGN KEY (receiverID) REFERENCES Accounts (accountID)
+);
