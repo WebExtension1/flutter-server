@@ -1,7 +1,23 @@
 import express from "express";
 import pool from "../db.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const router = express.Router();
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = './uploads/profilePictures';
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    cb(null, dir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+const upload = multer({ storage });
 
 router.post("/exists", async (req, res, next) => {
     try {
@@ -152,6 +168,28 @@ router.post("/updateName", async (req, res, next) => {
     }
 });
 
+router.post("/updateProfilePicture", upload.single("image"), async (req, res, next) => {
+    try {
+        const { email } = req.body;
+    
+        const sanitisedEmail = email.trim().toLowerCase();
+        const imageUrl = req.file ? `/uploads/profilePictures/${req.file.filename}` : null;
+    
+        const [result] = await pool.execute(
+        `
+            UPDATE Accounts SET imageUrl = ? WHERE email = ?
+        `, [imageUrl, sanitisedEmail]);
+
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ message: "Profile not updated" });
+        }
+        res.status(200).json(result[0]);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+
 router.post("/delete", async (req, res, next) => {
     try {
         const { email } = req.body;
@@ -251,6 +289,10 @@ router.post('/fromNumbers', async (req, res, next) => {
         const userAccountID = userResult[0].accountID;
         const placeholders = phoneNumbers.map(() => '?').join(',');
 
+        if (phoneNumbers.length === 0) {
+            return res.status(200).json([]);
+        }
+
         const [result] = await pool.execute(`
             SELECT *
             FROM Accounts
@@ -310,12 +352,16 @@ router.post('/friends', async (req, res, next) => {
                 CASE 
                     WHEN A1.email = ? THEN A2.dateJoined 
                     ELSE A1.dateJoined 
-                END AS dateJoined
+                END AS dateJoined,
+                CASE 
+                    WHEN A1.email = ? THEN A2.imageUrl 
+                    ELSE A1.imageUrl 
+                END AS imageUrl
             FROM Friends
             INNER JOIN Accounts AS A1 ON Friends.accountID1 = A1.accountID
             INNER JOIN Accounts AS A2 ON Friends.accountID2 = A2.accountID
             WHERE A1.email = ? OR A2.email = ?
-        `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
+        `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
         );
         
         if (result.length === 0) {

@@ -8,7 +8,7 @@ const router = express.Router();
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const dir = './uploads';
+    const dir = './uploads/posts';
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
     cb(null, dir);
   },
@@ -24,7 +24,7 @@ router.post("/create", upload.single("image"), async (req, res, next) => {
     const { email, content, visibility } = req.body;
 
     const sanitisedEmail = email.trim().toLowerCase();
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const imageUrl = req.file ? `/uploads/posts/${req.file.filename}` : null;
 
     const [result] = await pool.execute(
     `
@@ -60,6 +60,7 @@ router.post("/feed", async (req, res, next) => {
         Accounts.fname AS fname,
         Accounts.lname AS lname,
         Accounts.dateJoined AS dateJoined,
+        Accounts.imageUrl AS accountImageUrl,
         COUNT(DISTINCT PostLikes.postID) AS likes,
         COUNT(DISTINCT PostDislikes.postID) AS dislikes,
         COUNT(DISTINCT Comments.commentID) AS commentCount,
