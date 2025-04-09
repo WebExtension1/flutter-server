@@ -77,9 +77,9 @@ io.on("connection", (socket) => {
         SELECT
           Messages.messageID,
           Messages.content,
-          Messages.sentData,
+          Messages.sentDate,
           sender.email AS senderEmail,
-          receiver.email AS receiverEmail,
+          receiver.email AS receiverEmail
         FROM Messages
         INNER JOIN Accounts AS sender ON Messages.senderID = sender.accountID
         INNER JOIN Accounts AS receiver ON Messages.receiverID = receiver.accountID
@@ -110,7 +110,7 @@ io.on("connection", (socket) => {
         `, [`%${query}%`, `%${query}%`, `%${query}%`]
       );
   
-      const posts = await fetch(`http://localhost:3005/post/feed`, {
+      const posts = await fetch(`http://localhost:${process.env.BACKEND_PORT}/post/feed`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -181,6 +181,6 @@ app.use((err, res) => {
   res.status(500).json({ error: "Internal Server Error" });
 });
 
-app.listen(3007, () => console.log("API running on port 3007"));
+app.listen(process.env.BACKEND_PORT, () => console.log(`API running on port ${process.env.BACKEND_PORT}`));
 
-server.listen(3008, () => console.log("Server running on port 3008"));
+server.listen(process.env.SERVER_PORT, () => console.log(`Server running on port ${process.env.SERVER_PORT}`));
