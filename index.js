@@ -129,6 +129,7 @@ io.on("connection", (socket) => {
           Posts.postDate AS postDate,
           Posts.visibility AS visibility,
           Posts.imageUrl AS imageUrl,
+        Posts.location AS location,
           Accounts.accountID AS accountID,
           Accounts.email AS email,
           Accounts.phoneNumber AS phoneNumber,

@@ -21,16 +21,18 @@ const upload = multer({ storage });
 
 router.post("/create", upload.single("image"), async (req, res, next) => {
   try {
-    const { email, content, visibility } = req.body;
+    const { email, content, visibility, location } = req.body;
 
     const sanitisedEmail = email.trim().toLowerCase();
     const imageUrl = req.file ? `/uploads/posts/${req.file.filename}` : null;
 
+    const insertLocation = location ? location : null;
+
     const [result] = await pool.execute(
     `
-      INSERT INTO Posts (content, accountID, visibility, imageUrl) VALUES
-      (?, (SELECT accountID FROM Accounts WHERE email = ?), ?, ?)
-    `, [content, sanitisedEmail, visibility, imageUrl]);
+      INSERT INTO Posts (content, accountID, visibility, imageUrl, location) VALUES
+      (?, (SELECT accountID FROM Accounts WHERE email = ?), ?, ?, ?)
+    `, [content, sanitisedEmail, visibility, imageUrl, insertLocation]);
 
     res.json({ message: "Post created successfully", affectedRows: result.affectedRows });
   }
@@ -52,6 +54,7 @@ router.post("/feed", async (req, res, next) => {
         Posts.postDate AS postDate,
         Posts.visibility AS visibility,
         Posts.imageUrl AS imageUrl,
+        Posts.location AS location,
         Accounts.accountID AS accountID,
         Accounts.email AS email,
         Accounts.phoneNumber AS phoneNumber,
@@ -110,6 +113,7 @@ router.post("/get", async (req, res, next) => {
         Posts.postDate AS postDate,
         Posts.visibility AS visibility,
         Posts.imageUrl AS imageUrl,
+        Posts.location AS location,
         Accounts.accountID AS accountID,
         Accounts.email AS email,
         Accounts.phoneNumber AS phoneNumber,
