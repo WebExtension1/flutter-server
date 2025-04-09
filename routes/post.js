@@ -205,7 +205,56 @@ router.post("/get", async (req, res, next) => {
     `, [sanitisedEmail, sanitisedEmail, account, sanitisedEmail, sanitisedEmail, sanitisedEmail]
     );
 
-    res.json({'posts': posts, 'comments': comments});
+    const [liked] = await pool.execute(`
+      SELECT
+        Posts.postID AS postID,
+        Posts.content AS content,
+        Posts.postDate AS postDate,
+        Posts.visibility AS visibility,
+        Posts.imageUrl AS imageUrl,
+        Posts.location AS location,
+        Accounts.accountID AS accountID,
+        Accounts.email AS email,
+        Accounts.phoneNumber AS phoneNumber,
+        Accounts.username AS username,
+        Accounts.fname AS fname,
+        Accounts.lname AS lname,
+        Accounts.dateJoined AS dateJoined,
+        Accounts.imageUrl AS accountImageUrl,
+        COUNT(DISTINCT PostLikes.postID) AS likes,
+        COUNT(DISTINCT PostDislikes.postID) AS dislikes,
+        COUNT(DISTINCT Comments.commentID) AS commentCount,
+        COALESCE(MAX(
+            CASE 
+                WHEN PostLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 1
+                WHEN PostDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
+                ELSE 0
+            END
+        ), 0) AS liked
+      FROM Posts
+      INNER JOIN Accounts ON Posts.accountID = Accounts.accountID
+      LEFT JOIN PostLikes ON Posts.postID = PostLikes.postID
+      LEFT JOIN PostDislikes ON Posts.postID = PostDislikes.postID
+      LEFT JOIN Comments ON Posts.postID = Comments.postID
+      WHERE ((Posts.visibility = 'public')
+      OR (Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
+      OR (
+        Posts.visibility = 'friends' 
+        AND EXISTS (
+          SELECT 1 FROM Friends 
+          WHERE 
+            (Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?) AND Friends.accountID2 = Posts.accountID)
+            OR 
+            (Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?) AND Friends.accountID1 = Posts.accountID)
+        )
+      ))
+      AND PostsLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+      GROUP BY Posts.postID
+      ORDER BY postDate DESC
+    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, account]
+    );
+
+    res.json({'posts': posts, 'comments': comments, 'liked': liked});
   } catch (error) {
     next(error);
   }
