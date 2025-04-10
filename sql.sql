@@ -17,8 +17,7 @@ CREATE TABLE If Not Exists Accounts (
 );
 
 INSERT INTO Accounts (accountID, email, username, fname, lname, phoneNumber) VALUES
-(1, 'robertjenner6@outlook.com', 'Outlook', 'Web', 'Outlook', '001111222333'),
-(2, 'robertjenner5@me.com', 'Me', 'Web', 'Me', '123456789012');
+(1, 'placeholder', 'placeholder', 'placeholder', 'placeholder', 'placeholder');
 
 CREATE TABLE If Not Exists Posts (
     postID INT NOT NULL AUTO_INCREMENT,
@@ -32,10 +31,6 @@ CREATE TABLE If Not Exists Posts (
     FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
 );
 
-INSERT INTO Posts (content, accountID) VALUES
-("Web's post!", 1),
-("Lorem ipsum dolor sit amet consectetur adipisicing elit. Optio, et. Velit beatae dignissimos labore quidem cumque consequuntur blanditiis temporibus minus quaerat tenetur! Explicabo, quod mollitia!", 2);
-
 CREATE TABLE If Not Exists Comments (
     commentID INT NOT NULL AUTO_INCREMENT,
     content varchar(750),
@@ -47,9 +42,6 @@ CREATE TABLE If Not Exists Comments (
     FOREIGN KEY (postID) REFERENCES Posts (postID)
 );
 
-INSERT INTO Comments (content, accountID, postID) VALUES
-("Comment", 2, 1);
-
 CREATE TABLE If Not Exists FriendRequest (
     senderID int NOT NULL,
     receiverID int NOT NULL,
@@ -57,18 +49,12 @@ CREATE TABLE If Not Exists FriendRequest (
     FOREIGN KEY (receiverID) REFERENCES Accounts (accountID)
 );
 
-INSERT INTO FriendRequest (senderID, receiverID) VALUES
-(1, 2);
-
 CREATE TABLE If Not Exists Friends (
     accountID1 int NOT NULL,
     accountID2 int NOT NULL,
     FOREIGN KEY (accountID1) REFERENCES Accounts (accountID),
     FOREIGN KEY (accountID2) REFERENCES Accounts (accountID)
 );
-
-INSERT INTO Friends (accountID1, accountID2) VALUES
-(1, 2);
 
 CREATE TABLE If Not Exists PostLikes (
     postID int NOT NULL,

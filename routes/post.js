@@ -72,7 +72,27 @@ router.post("/feed", async (req, res, next) => {
                 WHEN PostDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
                 ELSE 0
             END
-        ), 0) AS liked
+        ), 0) AS liked,
+        CASE 
+          WHEN EXISTS (
+            SELECT 1 FROM Friends 
+            WHERE 
+              (Friends.accountID1 = Posts.accountID AND Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
+              OR 
+              (Friends.accountID2 = Posts.accountID AND Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?))
+          ) THEN 'friend'
+          WHEN EXISTS (
+            SELECT 1 FROM FriendRequest 
+            WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
+            AND receiverID = Posts.accountID
+          ) THEN 'outgoing'
+          WHEN EXISTS (
+            SELECT 1 FROM FriendRequest 
+            WHERE receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
+            AND senderID = Posts.accountID
+          ) THEN 'incoming'
+          ELSE 'other'
+        END AS relationship
       FROM Posts
       INNER JOIN Accounts ON Posts.accountID = Accounts.accountID
       LEFT JOIN PostLikes ON Posts.postID = PostLikes.postID
@@ -131,7 +151,27 @@ router.post("/get", async (req, res, next) => {
                 WHEN PostDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
                 ELSE 0
             END
-        ), 0) AS liked
+        ), 0) AS liked,
+        CASE 
+          WHEN EXISTS (
+            SELECT 1 FROM Friends 
+            WHERE 
+              (Friends.accountID1 = Posts.accountID AND Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
+              OR 
+              (Friends.accountID2 = Posts.accountID AND Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?))
+          ) THEN 'friend'
+          WHEN EXISTS (
+            SELECT 1 FROM FriendRequest 
+            WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
+            AND receiverID = Posts.accountID
+          ) THEN 'outgoing'
+          WHEN EXISTS (
+            SELECT 1 FROM FriendRequest 
+            WHERE receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
+            AND senderID = Posts.accountID
+          ) THEN 'incoming'
+          ELSE 'other'
+        END AS relationship
       FROM Posts
       INNER JOIN Accounts ON Posts.accountID = Accounts.accountID
       LEFT JOIN PostLikes ON Posts.postID = PostLikes.postID
@@ -152,7 +192,7 @@ router.post("/get", async (req, res, next) => {
       AND Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
       GROUP BY Posts.postID
       ORDER BY postDate DESC
-    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, account]
+    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
     );
 
     const [comments] = await pool.execute(`
@@ -175,7 +215,27 @@ router.post("/get", async (req, res, next) => {
                 WHEN CommentDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
                 ELSE 0
             END
-        ), 0) AS liked
+        ), 0) AS liked,
+        CASE 
+          WHEN EXISTS (
+            SELECT 1 FROM Friends 
+            WHERE 
+              (Friends.accountID1 = Posts.accountID AND Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
+              OR 
+              (Friends.accountID2 = Posts.accountID AND Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?))
+          ) THEN 'friend'
+          WHEN EXISTS (
+            SELECT 1 FROM FriendRequest 
+            WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
+            AND receiverID = Posts.accountID
+          ) THEN 'outgoing'
+          WHEN EXISTS (
+            SELECT 1 FROM FriendRequest 
+            WHERE receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
+            AND senderID = Posts.accountID
+          ) THEN 'incoming'
+          ELSE 'other'
+        END AS relationship
       FROM Comments
       INNER JOIN Accounts ON Comments.accountID = Accounts.accountID
       LEFT JOIN CommentLikes ON Comments.commentID = CommentLikes.commentID
@@ -202,7 +262,7 @@ router.post("/get", async (req, res, next) => {
         GROUP BY Comments.commentID
         ORDER BY sentDate DESC
       );
-    `, [sanitisedEmail, sanitisedEmail, account, sanitisedEmail, sanitisedEmail, sanitisedEmail]
+    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
     );
 
     const [liked] = await pool.execute(`
@@ -225,12 +285,32 @@ router.post("/get", async (req, res, next) => {
         COUNT(DISTINCT PostDislikes.postID) AS dislikes,
         COUNT(DISTINCT Comments.commentID) AS commentCount,
         COALESCE(MAX(
-            CASE 
-                WHEN PostLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 1
-                WHEN PostDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
-                ELSE 0
-            END
-        ), 0) AS liked
+          CASE 
+              WHEN PostLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 1
+              WHEN PostDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
+              ELSE 0
+          END
+        ), 0) AS liked,
+        CASE 
+          WHEN EXISTS (
+            SELECT 1 FROM Friends 
+            WHERE 
+              (Friends.accountID1 = Posts.accountID AND Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
+              OR 
+              (Friends.accountID2 = Posts.accountID AND Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?))
+          ) THEN 'friend'
+          WHEN EXISTS (
+            SELECT 1 FROM FriendRequest 
+            WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
+            AND receiverID = Posts.accountID
+          ) THEN 'outgoing'
+          WHEN EXISTS (
+            SELECT 1 FROM FriendRequest 
+            WHERE receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
+            AND senderID = Posts.accountID
+          ) THEN 'incoming'
+          ELSE 'other'
+        END AS relationship
       FROM Posts
       INNER JOIN Accounts ON Posts.accountID = Accounts.accountID
       LEFT JOIN PostLikes ON Posts.postID = PostLikes.postID
@@ -251,7 +331,7 @@ router.post("/get", async (req, res, next) => {
       AND PostLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
       GROUP BY Posts.postID
       ORDER BY postDate DESC
-    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, account]
+    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, account]
     );
 
     res.json({'posts': posts, 'comments': comments, 'liked': liked});
