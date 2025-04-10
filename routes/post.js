@@ -248,7 +248,7 @@ router.post("/get", async (req, res, next) => {
             (Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?) AND Friends.accountID1 = Posts.accountID)
         )
       ))
-      AND PostsLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
+      AND PostLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
       GROUP BY Posts.postID
       ORDER BY postDate DESC
     `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, account]
