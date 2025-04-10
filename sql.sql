@@ -31,6 +31,9 @@ CREATE TABLE If Not Exists Posts (
     FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
 );
 
+INSERT INTO Posts (postID, content, accountID) VALUES
+(1, 'placeholder', 1);
+
 CREATE TABLE If Not Exists Comments (
     commentID INT NOT NULL AUTO_INCREMENT,
     content varchar(750),
