@@ -1,3 +1,4 @@
 .env
 /node_modules
 /uploads
+firebase_private_key.json

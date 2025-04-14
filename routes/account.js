@@ -625,4 +625,26 @@ router.post('/removeFriend', async (req, res, next) => {
     }
 });
 
+router.post('/registerFCMToken', async (req, res, next) => {
+    try {
+        const { email, token } = req.body;
+    
+        const sanitisedEmail = email.trim().toLowerCase();
+
+        let [result] = await pool.execute(`
+            UPDATE Accounts
+            SET FCMToken = ?
+            WHERE email = ?
+        `, [token, sanitisedEmail]
+        );
+    
+        if (result.affectedRows === 0) {
+            return res.status(400).json({ message: "Token failed to register" });
+        }
+        res.status(200).json(result[0]);
+    } catch (error) {
+        next(error);
+    }
+});
+
 export default router;

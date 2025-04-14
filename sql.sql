@@ -13,6 +13,7 @@ CREATE TABLE If Not Exists Accounts (
     lname varchar(25) NOT NULL,
     dateJoined DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     imageUrl varchar(255) DEFAULT NULL,
+    FCMToken varchar(255) DEFAULT NULL,
     PRIMARY KEY (accountID)
 );
 

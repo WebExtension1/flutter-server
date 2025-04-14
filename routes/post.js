@@ -193,7 +193,7 @@ router.post("/get", async (req, res, next) => {
       AND Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
       GROUP BY Posts.postID
       ORDER BY postDate DESC
-    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
+    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, account]
     );
 
     const [comments] = await pool.execute(`
@@ -244,8 +244,7 @@ router.post("/get", async (req, res, next) => {
       LEFT JOIN CommentLikes ON Comments.commentID = CommentLikes.commentID
       LEFT JOIN CommentDislikes ON Comments.commentID = CommentDislikes.commentID
       INNER JOIN Posts ON Posts.postID = Comments.postID
-      WHERE Comments.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-      AND (
+      WHERE (
         Posts.visibility = 'public'
         OR Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
         OR (
@@ -258,9 +257,10 @@ router.post("/get", async (req, res, next) => {
           )
         )
       )
+      AND Comments.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
       GROUP BY Comments.commentID
       ORDER BY sentDate DESC
-    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
+    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, account]
     );
 
     const [liked] = await pool.execute(`
@@ -283,11 +283,11 @@ router.post("/get", async (req, res, next) => {
         COUNT(DISTINCT PostDislikes.postID) AS dislikes,
         COUNT(DISTINCT Comments.commentID) AS commentCount,
         COALESCE(MAX(
-          CASE 
-              WHEN PostLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 1
-              WHEN PostDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
-              ELSE 0
-          END
+            CASE 
+                WHEN PostLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 1
+                WHEN PostDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
+                ELSE 0
+            END
         ), 0) AS liked,
         CASE 
           WHEN EXISTS (
@@ -332,7 +332,14 @@ router.post("/get", async (req, res, next) => {
     `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, account]
     );
 
-    res.json({'posts': posts, 'comments': comments, 'liked': liked});
+    const [friendCount] = await pool.execute(`
+      SELECT COUNT(*) AS friendCount
+      FROM Friends
+      WHERE (accountID1 = (SELECT accountID FROM Accounts WHERE email = ?) OR accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
+    `, [sanitisedEmail, sanitisedEmail]
+    );
+
+    res.json({'posts': posts, 'comments': comments, 'liked': liked, 'friends': friendCount[0].friendCount});
   } catch (error) {
     next(error);
   }

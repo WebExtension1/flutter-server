@@ -5,6 +5,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import pool from "./db.js";
 import path from "path";
+import admin from "./firebase.js";
 
 // Router imports
 import postRouter from "./routes/post.js";
@@ -79,6 +80,7 @@ io.on("connection", (socket) => {
           Messages.content,
           Messages.sentDate,
           sender.email AS senderEmail,
+          sender.username AS senderUsername,
           receiver.email AS receiverEmail
         FROM Messages
         INNER JOIN Accounts AS sender ON Messages.senderID = sender.accountID
@@ -88,6 +90,33 @@ io.on("connection", (socket) => {
       );
 
       io.emit("chat message", messageData);
+
+      const [FCMToken] = await pool.execute(`
+        SELECT FCMToken FROM Accounts WHERE email = ?
+      `, [sanitisedRecipient]
+      );
+      const token = FCMToken[0].FCMToken;
+
+      if (token) {
+        const payload = {
+          token: token,
+          notification: {
+            title: `New message from ${messageData[0].senderUsername}`,
+            body: message,
+          },
+          data: {
+            type: "chat",
+            sender,
+            receiver: recipient,
+          },
+        };
+    
+        try {
+          await admin.messaging().send(payload);
+        } catch (err) {
+          console.error("Failed to send notification:", err);
+        }
+      }
     } catch (error) {
       console.error("Message error:", error);
       socket.emit("message_error", { message: "An error occurred while sending the message." });
