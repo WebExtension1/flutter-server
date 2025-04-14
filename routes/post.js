@@ -112,7 +112,8 @@ router.post("/feed", async (req, res, next) => {
       )
       GROUP BY Posts.postID
       ORDER BY postDate DESC
-    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]);
+    `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
+    );
 
     res.json(result);
   } catch (error) {
@@ -207,6 +208,8 @@ router.post("/get", async (req, res, next) => {
         Accounts.fname AS fname,
         Accounts.lname AS lname,
         Accounts.dateJoined AS dateJoined,
+        Accounts.imageUrl AS accountImageUrl,
+        Posts.*,
         COUNT(DISTINCT CommentLikes.commentID) AS likes,
         COUNT(DISTINCT CommentDislikes.commentID) AS dislikes,
         COALESCE(MAX(
@@ -242,26 +245,21 @@ router.post("/get", async (req, res, next) => {
       LEFT JOIN CommentDislikes ON Comments.commentID = CommentDislikes.commentID
       INNER JOIN Posts ON Posts.postID = Comments.postID
       WHERE Comments.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-      AND Comments.postID IN (
-        SELECT
-          Posts.postID AS postID
-        FROM Posts
-        INNER JOIN Accounts ON Posts.accountID = Accounts.accountID
-        WHERE ((Posts.visibility = 'public')
-        OR (Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
+      AND (
+        Posts.visibility = 'public'
+        OR Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
         OR (
-          Posts.visibility = 'friends' 
-          AND EXISTS (
+          Posts.visibility = 'friends' AND EXISTS (
             SELECT 1 FROM Friends 
             WHERE 
               (Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?) AND Friends.accountID2 = Posts.accountID)
               OR 
               (Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?) AND Friends.accountID1 = Posts.accountID)
           )
-        ))
-        GROUP BY Comments.commentID
-        ORDER BY sentDate DESC
-      );
+        )
+      )
+      GROUP BY Comments.commentID
+      ORDER BY sentDate DESC
     `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
     );
 
@@ -344,14 +342,15 @@ router.post("/delete", async (req, res, next) => {
   try {
     const { postID } = req.body;
 
-    // This should be reworked into moving comments to a default deleated post, but this is the solution for now.
-    let [result] = await pool.execute(
-      `DELETE FROM Comments WHERE postID = ?
-    `, [postID]);
+    let [result] = await pool.execute(`
+      UPDATE Comments SET postID = 1 WHERE postID = ?
+    `, [postID]
+    );
 
-    [result] = await pool.execute(
-      `DELETE FROM Posts WHERE postID = ?
-    `, [postID]);
+    [result] = await pool.execute(`
+      DELETE FROM Posts WHERE postID = ?
+    `, [postID]
+    );
 
     res.json({ message: "Post deleted successfully", affectedRows: result.affectedRows });
   } catch (error) {

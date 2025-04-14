@@ -41,6 +41,7 @@ router.post("/get", async (req, res, next) => {
           Accounts.fname AS fname,
           Accounts.lname AS lname,
           Accounts.dateJoined AS dateJoined,
+          Accounts.imageUrl AS accountImageUrl,
           COUNT(DISTINCT CommentLikes.commentID) AS likes,
           COUNT(DISTINCT CommentDislikes.commentID) AS dislikes,
           COALESCE(MAX(

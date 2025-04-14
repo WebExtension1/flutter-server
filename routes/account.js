@@ -423,7 +423,7 @@ router.post('/friendsPage', async (req, res, next) => {
         const placeholders = phoneNumbers.map(() => '?').join(',');
         
         let [contacts] = [];
-        if (phoneNumbers.length === 0)
+        if (phoneNumbers.length > 0)
         {
             [contacts] = await pool.execute(`
                 SELECT *
