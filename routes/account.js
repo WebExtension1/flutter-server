@@ -67,10 +67,32 @@ router.post("/details", async (req, res, next) => {
         const { email } = req.body;
 
         const sanitisedEmail = email.trim().toLowerCase();
-
+        
         const [result] = await pool.execute(`
-            SELECT * FROM Accounts WHERE email = ?
-        `, [sanitisedEmail]
+            SELECT *,
+            CASE 
+                WHEN EXISTS (
+                    SELECT 1 FROM Friends 
+                    WHERE 
+                    (Friends.accountID1 = accountID AND Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
+                    OR 
+                    (Friends.accountID2 = accountID AND Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?))
+                ) THEN 'friend'
+                WHEN EXISTS (
+                    SELECT 1 FROM FriendRequest 
+                    WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
+                    AND receiverID = accountID
+                ) THEN 'outgoing'
+                WHEN EXISTS (
+                    SELECT 1 FROM FriendRequest 
+                    WHERE receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
+                    AND senderID = accountID
+                ) THEN 'incoming'
+                ELSE 'other'
+                END AS relationship
+            FROM Accounts
+            WHERE email = ?
+        `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
         );
 
         if (result.affectedRows === 0) {
@@ -355,7 +377,8 @@ router.post('/friends', async (req, res, next) => {
                 CASE 
                     WHEN A1.email = ? THEN A2.imageUrl 
                     ELSE A1.imageUrl 
-                END AS imageUrl
+                END AS imageUrl,
+                'friend' as relationship
             FROM Friends
             INNER JOIN Accounts AS A1 ON Friends.accountID1 = A1.accountID
             INNER JOIN Accounts AS A2 ON Friends.accountID2 = A2.accountID
@@ -412,7 +435,8 @@ router.post('/friendsPage', async (req, res, next) => {
                 CASE 
                     WHEN A1.email = ? THEN A2.imageUrl 
                     ELSE A1.imageUrl 
-                END AS imageUrl
+                END AS imageUrl,
+                'friend' as relationship
             FROM Friends
             INNER JOIN Accounts AS A1 ON Friends.accountID1 = A1.accountID
             INNER JOIN Accounts AS A2 ON Friends.accountID2 = A2.accountID
@@ -426,7 +450,27 @@ router.post('/friendsPage', async (req, res, next) => {
         if (phoneNumbers.length > 0)
         {
             [contacts] = await pool.execute(`
-                SELECT *
+                SELECT *,
+                    CASE 
+                        WHEN EXISTS (
+                            SELECT 1 FROM Friends 
+                            WHERE 
+                            (Friends.accountID1 = accountID AND Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
+                            OR 
+                            (Friends.accountID2 = accountID AND Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?))
+                        ) THEN 'friend'
+                        WHEN EXISTS (
+                            SELECT 1 FROM FriendRequest 
+                            WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
+                            AND receiverID = accountID
+                        ) THEN 'outgoing'
+                        WHEN EXISTS (
+                            SELECT 1 FROM FriendRequest 
+                            WHERE receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
+                            AND senderID = accountID
+                        ) THEN 'incoming'
+                        ELSE 'other'
+                    END AS relationship
                 FROM Accounts
                 WHERE phoneNumber IN (${placeholders})
                 AND email != ?
@@ -436,12 +480,32 @@ router.post('/friendsPage', async (req, res, next) => {
                     WHERE (Friends.accountID1 = Accounts.accountID AND Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
                     OR (Friends.accountID2 = Accounts.accountID AND Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?))
                 )
-            `, [...phoneNumbers, sanitisedEmail, sanitisedEmail, sanitisedEmail]
+            `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, ...phoneNumbers, sanitisedEmail, sanitisedEmail, sanitisedEmail]
             );
         }
 
         const [mutual] = await pool.execute(`
-            SELECT *
+            SELECT *,
+                CASE 
+                    WHEN EXISTS (
+                        SELECT 1 FROM Friends 
+                        WHERE 
+                        (Friends.accountID1 = accountID AND Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
+                        OR 
+                        (Friends.accountID2 = accountID AND Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?))
+                    ) THEN 'friend'
+                    WHEN EXISTS (
+                        SELECT 1 FROM FriendRequest 
+                        WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
+                        AND receiverID = accountID
+                    ) THEN 'outgoing'
+                    WHEN EXISTS (
+                        SELECT 1 FROM FriendRequest 
+                        WHERE receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
+                        AND senderID = accountID
+                    ) THEN 'incoming'
+                    ELSE 'other'
+                END AS relationship
             FROM Accounts
             WHERE accountID IN (
                 SELECT A2.accountID
@@ -478,11 +542,12 @@ router.post('/friendsPage', async (req, res, next) => {
                 )
             )
             AND email != ?
-        `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
+        `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
         );
 
         const [incoming] = await pool.execute(`
-            SELECT Accounts.*
+            SELECT Accounts.*,
+                'incoming' as relationship
             FROM FriendRequest
             INNER JOIN Accounts ON FriendRequest.senderID = Accounts.accountID
             WHERE FriendRequest.receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
@@ -490,7 +555,8 @@ router.post('/friendsPage', async (req, res, next) => {
         );
 
         const [outgoing] = await pool.execute(`
-            SELECT Accounts.*
+            SELECT Accounts.*,
+                'outgoing' as relationship
             FROM FriendRequest
             INNER JOIN Accounts ON FriendRequest.receiverID = Accounts.accountID
             WHERE FriendRequest.senderID = (SELECT accountID FROM Accounts WHERE email = ?)

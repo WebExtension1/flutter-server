@@ -130,13 +130,33 @@ io.on("connection", (socket) => {
       const sanitisedEmail = email.trim().toLowerCase();
 
       const [searchedAccounts] = await pool.execute(`
-        SELECT *
+        SELECT *,
+          CASE 
+            WHEN EXISTS (
+              SELECT 1 FROM Friends 
+              WHERE 
+              (Friends.accountID1 = accountID AND Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
+              OR 
+              (Friends.accountID2 = accountID AND Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?))
+            ) THEN 'friend'
+            WHEN EXISTS (
+              SELECT 1 FROM FriendRequest 
+              WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
+              AND receiverID = accountID
+            ) THEN 'outgoing'
+            WHEN EXISTS (
+              SELECT 1 FROM FriendRequest 
+              WHERE receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
+              AND senderID = accountID
+            ) THEN 'incoming'
+            ELSE 'other'
+            END AS relationship
         FROM Accounts
         WHERE LOWER(username) LIKE LOWER(?)
         OR LOWER(fname) LIKE LOWER(?)
         OR LOWER(lname) LIKE LOWER(?)
         GROUP BY Accounts.accountID
-        `, [`%${query}%`, `%${query}%`, `%${query}%`]
+        `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, `%${query}%`, `%${query}%`, `%${query}%`]
       );
   
       const posts = await fetch(`http://localhost:${process.env.BACKEND_PORT}/post/feed`, {
@@ -176,7 +196,27 @@ io.on("connection", (socket) => {
                 WHEN PostDislikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?) THEN 2
                 ELSE 0
             END
-          ), 0) AS liked
+          ), 0) AS liked,
+          CASE 
+            WHEN EXISTS (
+              SELECT 1 FROM Friends 
+              WHERE 
+              (Friends.accountID1 = Posts.accountID AND Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?))
+              OR 
+              (Friends.accountID2 = Posts.accountID AND Friends.accountID1 = (SELECT accountID FROM Accounts WHERE email = ?))
+            ) THEN 'friend'
+            WHEN EXISTS (
+              SELECT 1 FROM FriendRequest 
+              WHERE senderID = (SELECT accountID FROM Accounts WHERE email = ?)
+              AND receiverID = Posts.accountID
+            ) THEN 'outgoing'
+            WHEN EXISTS (
+              SELECT 1 FROM FriendRequest 
+              WHERE receiverID = (SELECT accountID FROM Accounts WHERE email = ?)
+              AND senderID = Posts.accountID
+            ) THEN 'incoming'
+            ELSE 'other'
+          END AS relationship
           FROM Posts
           INNER JOIN Accounts ON Posts.accountID = Accounts.accountID
           LEFT JOIN PostLikes ON Posts.postID = PostLikes.postID
@@ -185,7 +225,7 @@ io.on("connection", (socket) => {
           WHERE LOWER(Posts.content) LIKE LOWER(?)
           AND Posts.postID IN (${placeholders})
           GROUP BY Posts.postID
-        `, [sanitisedEmail, sanitisedEmail, `%${query}%`, ...postIDs]
+        `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, `%${query}%`, ...postIDs]
       );
   
       io.emit("search", {'accounts': searchedAccounts, 'posts': searchedPosts});
