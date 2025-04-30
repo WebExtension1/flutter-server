@@ -223,7 +223,7 @@ router.post("/delete", async (req, res, next) => {
             OR PostLikes.postID IN (
                 SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             );
-        `, [sanitisedEmail]
+        `, [sanitisedEmail, sanitisedEmail]
         );
 
         [result] = await pool.execute(`
@@ -232,16 +232,16 @@ router.post("/delete", async (req, res, next) => {
             OR PostDislikes.postID IN (
                 SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             );
-        `, [sanitisedEmail]
+        `, [sanitisedEmail, sanitisedEmail]
         );
 
         [result] = await pool.execute(`
             DELETE FROM CommentLikes
             WHERE CommentLikes.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-            OR CommentLikes.postID IN (
+            OR CommentLikes.commentID IN (
                 SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             );
-        `, [sanitisedEmail]
+        `, [sanitisedEmail, sanitisedEmail]
         );
 
         [result] = await pool.execute(`
@@ -250,13 +250,13 @@ router.post("/delete", async (req, res, next) => {
             OR CommentDislikes.postID IN (
                 SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             );
-        `, [sanitisedEmail]
+        `, [sanitisedEmail, sanitisedEmail]
         );
 
         [result] = await pool.execute(`
             DELETE FROM Comments
             WHERE Comments.accountID = (SELECT accountID FROM Accounts WHERE email = ?)
-            OR Comments.postID IN (
+            OR Comments.commentID IN (
                 SELECT postID FROM Posts WHERE accountID = (SELECT accountID FROM Accounts WHERE email = ?)
             );
         `, [sanitisedEmail, sanitisedEmail]
@@ -507,7 +507,7 @@ router.post('/friendsPage', async (req, res, next) => {
                     ELSE 'other'
                 END AS relationship
             FROM Accounts
-            WHERE accountID IN (
+            WHERE (accountID IN (
                 SELECT A2.accountID
                 FROM Friends
                 INNER JOIN Accounts AS A1 ON Friends.accountID1 = A1.accountID
@@ -540,7 +540,7 @@ router.post('/friendsPage', async (req, res, next) => {
                     INNER JOIN Accounts AS A2 ON Friends.accountID2 = A2.accountID
                     WHERE A1.email = ? OR A2.email = ?
                 )
-            )
+            ))
             AND email != ?
         `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
         );
@@ -708,6 +708,38 @@ router.post('/registerFCMToken', async (req, res, next) => {
             return res.status(400).json({ message: "Token failed to register" });
         }
         res.status(200).json(result[0]);
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.post('/getMessageHistory', async (req, res, next) => {
+    try {
+        const { sender, recipient } = req.body;
+  
+        const sanitisedSender = sender.trim().toLowerCase();
+        const sanitisedRecipient = recipient.trim().toLowerCase();
+    
+        const [result] = await pool.execute(`
+            SELECT
+                Messages.messageID as messageID,
+                Messages.content AS content,
+                Messages.sentDate AS sentDate,
+                sender.email AS senderEmail,
+                receiver.email AS receiverEmail
+            FROM Messages
+            INNER JOIN Accounts AS sender ON Messages.senderID = sender.accountID
+            INNER JOIN Accounts AS receiver ON Messages.receiverID = receiver.accountID
+            WHERE (sender.accountID = (SELECT accountID FROM Accounts WHERE email = ?) AND receiver.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
+            OR (sender.accountID = (SELECT accountID FROM Accounts WHERE email = ?) AND receiver.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
+            ORDER BY Messages.sentDate ASC
+        `, [sanitisedSender, sanitisedRecipient, sanitisedRecipient, sanitisedSender]
+        );
+
+        if (result.length === 0) {
+            return res.status(404).json({ message: "No messages found" });
+        }
+        res.status(200).json(result);
     } catch (error) {
         next(error);
     }

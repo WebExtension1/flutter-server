@@ -1,7 +1,12 @@
-DROP TABLE IF EXISTS FriendRequest;
-DROP TABLE IF EXISTS Friends;
+DROP TABLE IF EXISTS PostDislikes;
+DROP TABLE IF EXISTS PostLikes;
+DROP TABLE IF EXISTS CommentDislikes;
+DROP TABLE IF EXISTS CommentLikes;
 DROP TABLE IF EXISTS Comments;
 DROP TABLE IF EXISTS Posts;
+DROP TABLE IF EXISTS FriendRequest;
+DROP TABLE IF EXISTS Friends;
+DROP TABLE IF EXISTS Messages;
 DROP TABLE IF EXISTS Accounts;
 
 CREATE TABLE If Not Exists Accounts (
@@ -18,7 +23,7 @@ CREATE TABLE If Not Exists Accounts (
 );
 
 INSERT INTO Accounts (accountID, email, username, fname, lname, phoneNumber) VALUES
-(1, 'placeholder', 'placeholder', 'placeholder', 'placeholder', 'placeholder');
+(1, 'placeholder', 'placeholder', 'placeholder', 'placeholder', 111111111);
 
 CREATE TABLE If Not Exists Posts (
     postID INT NOT NULL AUTO_INCREMENT,
@@ -29,7 +34,7 @@ CREATE TABLE If Not Exists Posts (
     imageUrl varchar(255) DEFAULT NULL,
     location varchar(255) DEFAULT NULL,
     PRIMARY KEY (postID),
-    FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
+    FOREIGN KEY (accountID) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 INSERT INTO Posts (postID, content, accountID) VALUES
@@ -42,50 +47,50 @@ CREATE TABLE If Not Exists Comments (
     accountID int NOT NULL,
     postID int NOT NULL,
     PRIMARY KEY (commentID),
-    FOREIGN KEY (accountID) REFERENCES Accounts (accountID),
-    FOREIGN KEY (postID) REFERENCES Posts (postID)
+    FOREIGN KEY (accountID) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (postID) REFERENCES Posts (postID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE If Not Exists FriendRequest (
     senderID int NOT NULL,
     receiverID int NOT NULL,
-    FOREIGN KEY (senderID) REFERENCES Accounts (accountID),
-    FOREIGN KEY (receiverID) REFERENCES Accounts (accountID)
+    FOREIGN KEY (senderID) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (receiverID) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE If Not Exists Friends (
     accountID1 int NOT NULL,
     accountID2 int NOT NULL,
-    FOREIGN KEY (accountID1) REFERENCES Accounts (accountID),
-    FOREIGN KEY (accountID2) REFERENCES Accounts (accountID)
+    FOREIGN KEY (accountID1) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (accountID2) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE If Not Exists PostLikes (
     postID int NOT NULL,
     accountID int NOT NULL,
-    FOREIGN KEY (postID) REFERENCES Posts (postID),
-    FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
+    FOREIGN KEY (postID) REFERENCES Posts (postID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (accountID) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE If Not Exists PostDislikes (
     postID int NOT NULL,
     accountID int NOT NULL,
-    FOREIGN KEY (postID) REFERENCES Posts (postID),
-    FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
+    FOREIGN KEY (postID) REFERENCES Posts (postID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (accountID) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE If Not Exists CommentLikes (
     commentID int NOT NULL,
     accountID int NOT NULL,
-    FOREIGN KEY (commentID) REFERENCES Comments (commentID),
-    FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
+    FOREIGN KEY (commentID) REFERENCES Comments (commentID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (accountID) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE If Not Exists CommentDislikes (
     commentID int NOT NULL,
     accountID int NOT NULL,
-    FOREIGN KEY (commentID) REFERENCES Comments (commentID),
-    FOREIGN KEY (accountID) REFERENCES Accounts (accountID)
+    FOREIGN KEY (commentID) REFERENCES Comments (commentID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (accountID) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE If Not Exists Messages (
@@ -95,6 +100,6 @@ CREATE TABLE If Not Exists Messages (
     senderID int NOT NULL,
     receiverID int NOT NULL,
     PRIMARY KEY (messageID),
-    FOREIGN KEY (senderID) REFERENCES Accounts (accountID),
-    FOREIGN KEY (receiverID) REFERENCES Accounts (accountID)
+    FOREIGN KEY (senderID) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (receiverID) REFERENCES Accounts (accountID) ON DELETE CASCADE ON UPDATE CASCADE
 );

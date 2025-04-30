@@ -29,36 +29,6 @@ const io = new Server(server, {
 
 io.on("connection", (socket) => {
   console.log("Connected to server");
-  
-  socket.on("open message", async (data) => {
-    try {
-      const { sender, recipient } = data;
-  
-      const sanitisedSender = sender.trim().toLowerCase();
-      const sanitisedRecipient = recipient.trim().toLowerCase();
-  
-      const [result] = await pool.execute(`
-        SELECT
-          Messages.messageID as messageID,
-          Messages.content AS content,
-          Messages.sentDate AS sentDate,
-          sender.email AS senderEmail,
-          receiver.email AS receiverEmail
-        FROM Messages
-        INNER JOIN Accounts AS sender ON Messages.senderID = sender.accountID
-        INNER JOIN Accounts AS receiver ON Messages.receiverID = receiver.accountID
-        WHERE (sender.accountID = (SELECT accountID FROM Accounts WHERE email = ?) AND receiver.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
-        OR (sender.accountID = (SELECT accountID FROM Accounts WHERE email = ?) AND receiver.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
-        ORDER BY Messages.sentDate ASC
-      `, [sanitisedSender, sanitisedRecipient, sanitisedRecipient, sanitisedSender]
-    );
-  
-      io.emit("open message", result);
-    } catch (error) {
-      console.error("Message error:", error);
-      socket.emit("message_error", { message: "An error occurred while fetching message history." });
-    }
-  });
 
   socket.on("chat message", async (data) => {
     try {
@@ -152,9 +122,10 @@ io.on("connection", (socket) => {
             ELSE 'other'
             END AS relationship
         FROM Accounts
-        WHERE LOWER(username) LIKE LOWER(?)
+        WHERE (LOWER(username) LIKE LOWER(?)
         OR LOWER(fname) LIKE LOWER(?)
-        OR LOWER(lname) LIKE LOWER(?)
+        OR LOWER(lname) LIKE LOWER(?))
+        AND username != 'placeholder'
         GROUP BY Accounts.accountID
         `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, `%${query}%`, `%${query}%`, `%${query}%`]
       );

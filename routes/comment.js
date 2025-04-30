@@ -86,6 +86,21 @@ router.post("/get", async (req, res, next) => {
   }
 });
 
+router.post("/delete", async (req, res, next) => {
+  try {
+    const { commentID } = req.body;
+
+    const [result] = await pool.execute(`
+      DELETE FROM Comments WHERE commentID = ?
+    `, [commentID]
+    );
+
+    res.json({ message: "Comment deleted successfully", affectedRows: result.affectedRows });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post("/like", async (req, res, next) => {
   try {
     const { email, commentID } = req.body;
