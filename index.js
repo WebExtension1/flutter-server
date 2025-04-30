@@ -195,6 +195,7 @@ io.on("connection", (socket) => {
           LEFT JOIN Comments ON Posts.postID = Comments.postID
           WHERE LOWER(Posts.content) LIKE LOWER(?)
           AND Posts.postID IN (${placeholders})
+          AND username != 'placeholder'
           GROUP BY Posts.postID
         `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, `%${query}%`, ...postIDs]
       );

@@ -98,7 +98,7 @@ router.post("/feed", async (req, res, next) => {
       LEFT JOIN PostLikes ON Posts.postID = PostLikes.postID
       LEFT JOIN PostDislikes ON Posts.postID = PostDislikes.postID
       LEFT JOIN Comments ON Posts.postID = Comments.postID
-      WHERE (Posts.visibility = 'public')
+      WHERE ((Posts.visibility = 'public')
       OR (Posts.accountID = (SELECT accountID FROM Accounts WHERE email = ?))
       OR (
         Posts.visibility = 'friends' 
@@ -109,7 +109,8 @@ router.post("/feed", async (req, res, next) => {
             OR 
             (Friends.accountID2 = (SELECT accountID FROM Accounts WHERE email = ?) AND Friends.accountID1 = Posts.accountID)
         )
-      )
+    ))
+      AND username != 'placeholder'
       GROUP BY Posts.postID
       ORDER BY postDate DESC
     `, [sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail, sanitisedEmail]
